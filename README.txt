@@ -1,8 +1,4 @@
-BeneCast for TurtleWoW
-_________
-|VERSION|
----------
-2.1.2 
+BeneCast version 3.0 for TurtleWoW
 ______________
 |INTRODUCTION|
 --------------
@@ -247,18 +243,8 @@ can offset this by changing the x and y values.
 ________
 |THANKS|
 --------
-Thank you danboo! Your loading of spells by reading the tooltip and spell 
-choosing functions were invaluable in the writing of this mod. Thanks to all the 
-other mod writers out there from which I learned from.
+To Skurel for founding the project.
+To Wintrow for caretaking the project.
 
-Thanks to Urlik! Without his valiant testing, Paladins would probably still be
-broken.
-
-Thanks to Tyndral and Effren! Their help with the unclickable buttons allowed me
-to attemp a fix. Hopefully their efforts in helping me has paid off!
-
-Thanks to Hiroko of Argent Dawn(EU). Your help in Greater Blessings was greatly
-appreciated!
-
-Thanks to Auric Goldfinger. He's been a real help pointing out and fixing
-various bugs.
+Thank you also to:
+danboo, Urlik!,Tyndral, Effren, Hiroko of Argent Dawn(EU). and Auric Goldfinger.
