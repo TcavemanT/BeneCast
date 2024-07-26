@@ -2385,17 +2385,18 @@ function BeneCast_UpdateButtons(id)
 	
 	local activeshapeshiftid = 0;
 	local is_TreeOfLife = false;
-	-- If player is a Druid and is shapeshifted hide all buttons
+	-- When a Druid is shapeshifted hide all buttons
+	-- unless  they are tree of life form
 	if ( BC_class == BENECAST_STRINGS.CLASS_DRUID ) then
 		-- Check all shapeshift forms to see if they're active
 		local shapeshiftnum = GetNumShapeshiftForms();
 		local icon, name, active;
-		local is_shapeshifted = nil;
+		--local is_shapeshifted = nil;
 		for i = 1,shapeshiftnum do
 			icon, name, active = GetShapeshiftFormInfo(i);
 			if ( active ) then
-				is_shapeshifted = true;
-				activeshapeshiftid = i; --WINTROW.2
+				--is_shapeshifted = true;
+				activeshapeshiftid = i;
 				if( name == 'Tree of Life Form' ) then
 					is_TreeOfLife = true;
 				end
@@ -2836,7 +2837,7 @@ function BeneCast_UpdateButtons(id)
 	-- Show buttons for effects that are removable once
 	if ( poisonshow ) then
 		if ( BeneCast_ShowButton('poison', firstfreebutton, id, member) ) then
-			if activeshapeshiftid ~= 0 then
+			if (activeshapeshiftid ~= 0 and not is_TreeOfLife) then
 				getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton .. 'Fade'):Show();
 			else
 				getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton .. 'Fade'):Hide();
@@ -2849,14 +2850,12 @@ function BeneCast_UpdateButtons(id)
 			firstfreebutton = firstfreebutton+1;
 		end
 	end
-	--WINTROW.6 START
 	--Priest's Abolish Disease is different manacost -> different button
 	if ( diseaseshow ) then
 		if ( BeneCast_ShowButton('disease2', firstfreebutton, id, member) ) then
 			firstfreebutton = firstfreebutton+1;
 		end
 	end
-	--WINTROW.6 STOP
 	if ( magicshow ) then
 		if ( BeneCast_ShowButton('magic', firstfreebutton, id, member) ) then
 			firstfreebutton = firstfreebutton+1;
@@ -2864,7 +2863,7 @@ function BeneCast_UpdateButtons(id)
 	end
 	if ( curseshow ) then
 		if ( BeneCast_ShowButton('curse', firstfreebutton, id, member) ) then
-			if activeshapeshiftid ~= 0 then
+			if (activeshapeshiftid ~= 0 and not is_TreeOfLife )then
 				getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton .. 'Fade'):Show();
 			else
 				getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton .. 'Fade'):Hide();
@@ -2873,7 +2872,6 @@ function BeneCast_UpdateButtons(id)
 		end
 	end
 	
-	--WINTROW.6 START
 	--Check for flashing
 	local iterator = 1; -- First clean out the flash-buttons of this panel, ready to be re-added if still active
 	while iterator <= table.getn(BC_buttons_that_flash) do
@@ -2951,7 +2949,6 @@ function BeneCast_UpdateButtons(id)
 			end
 		end
 	end
-	--WINTROW.6 STOP
 
 	-- Hide all buttons that shouldn't be shown
 	for x = firstfreebutton, BeneCastConfig.ButtonNumber do
@@ -3329,7 +3326,6 @@ end
 
 function BeneCastSpellCheckButton_OnClick()
 
-	-- Put some things in a local in the beginning for efficiency (thnx Shimavak)
 	local spellname = getglobal( this:GetName() .. 'Text' ):GetText();
 	local parentid = this:GetParent():GetID();
 	-- Set the BeneCastConfig for the option to take on the value of the checkbutton
@@ -3816,27 +3812,27 @@ function BeneCastPanelManager_OnUpdate()
 				if ( BC_weaponenchant ~= BENECAST_STRINGS.WEAPONENCHANT_ROCKBITER and string.find(line, BENECAST_STRINGS.WEAPONENCHANT_ROCKBITER) ) then
 					BC_weaponenchant = BENECAST_STRINGS.WEAPONENCHANT_ROCKBITER;
 					BeneCast_UpdateButtons(1);
-					do break end; --WINTROW.6, break for efficiency
+					do break end;
 				end
 				if ( BC_weaponenchant ~= BENECAST_STRINGS.WEAPONENCHANT_FLAMETONGUE and string.find(line, BENECAST_STRINGS.WEAPONENCHANT_FLAMETONGUE) ) then
 					BC_weaponenchant = BENECAST_STRINGS.WEAPONENCHANT_FLAMETONGUE;
 					BeneCast_UpdateButtons(1);
-					do break end; --WINTROW.6, break for efficiency
+					do break end;
 				end
 				if ( BC_weaponenchant ~= BENECAST_STRINGS.WEAPONENCHANT_FROSTBRAND and string.find(line, BENECAST_STRINGS.WEAPONENCHANT_FROSTBRAND) ) then
 					BC_weaponenchant = BENECAST_STRINGS.WEAPONENCHANT_FROSTBRAND;
 					BeneCast_UpdateButtons(1);
-					do break end; --WINTROW.6, break for efficiency
+					do break end;
 				end
 				if ( BC_weaponenchant ~= BENECAST_STRINGS.WEAPONENCHANT_WINDFURY and string.find(line, BENECAST_STRINGS.WEAPONENCHANT_WINDFURY) ) then
 					BC_weaponenchant = BENECAST_STRINGS.WEAPONENCHANT_WINDFURY;
 					BeneCast_UpdateButtons(1);
-					do break end; --WINTROW.6, break for efficiency
+					do break end;
 				end
 				if ( BC_weaponenchant ~= BENECAST_STRINGS.WEAPONENCHANT_FEEDBACK and string.find(line, BENECAST_STRINGS.WEAPONENCHANT_FEEDBACK) ) then
 					BC_weaponenchant = BENECAST_STRINGS.WEAPONENCHANT_FEEDBACK;
 					BeneCast_UpdateButtons(1);
-					do break end; --WINTROW.6, break for efficiency
+					do break end;
 				end
 			end
 		end
