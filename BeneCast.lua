@@ -1020,7 +1020,7 @@ end
 -- BeneCast tooltip parsing functions
 -- *****************************************************************************
 
--- Functions for parsing healing info from tooltip. Thanks Danboo!
+-- Functions for parsing healing info from tooltip.
 local function parse_integer(text, index)
 
 	if ( not text ) then
@@ -1028,7 +1028,7 @@ local function parse_integer(text, index)
 	end
 	
 	local i = 1;
-	-- Replace ',' with '.', needed for German client. Thanks Auric!
+	-- Replace ',' with '.', needed for German client.
 	text = string.gsub(text, ',', '.');
 	for integer in string.gfind(text, '%d+%.?%d*') do
 		if ( i == index ) then
@@ -1059,7 +1059,7 @@ local function pi_fourth(text)
 	return parse_integer(text, 4);
 end
 
--- Mapping of healing spell lines to heal amount parsers. Thanks Danboo!
+-- Mapping of healing spell lines to heal amount parsers.
 -- Spell parsing is slightly different in the German client
 local BC_spell_parsers = {}
 if ( GetLocale() == 'deDE' ) then
@@ -1765,7 +1765,7 @@ end
 -- *****************************************************************************
 
 -- Function for Party Notification
--- Modified SpeakSpell by Danboo. Thanks Danboo!
+-- Modified SpeakSpell by Danboo.
 -- Returns true if a notification message was sent
 function BeneCast_PartyNotify(target, spell, ismax, duration)
 
@@ -1907,7 +1907,7 @@ function BeneCast_PartyNotify(target, spell, ismax, duration)
 end
 
 -- Function for Party Notification on failures and interruptions
--- Modified SpeakSpell by Danboo. Thanks Danboo!
+-- Modified SpeakSpell by Danboo.
 function BeneCast_PartyNotifyFail(event)
 
 	local message_text;
@@ -1937,7 +1937,6 @@ function BeneCast_PartyNotifyFail(event)
 		SendChatMessage(message_text, 'WHISPER', nil, name);
 	elseif ( BeneCastConfig.UserNotify ) then
 		SendChatMessage(message_text, 'CHANNEL', nil, GetChannelName(BeneCastConfig.UserChannel));
-	-- Thnx to Shimavak for the emote-code
 	elseif ( BeneCastConfig.EmoteNotify ) then 
 		SendChatMessage(message_text, 'EMOTE');
 	end
@@ -2408,7 +2407,7 @@ function BeneCast_UpdateButtons(id)
 	-- Otherwise show the buttons. Show the BeneCastPanel frame first
 	getglobal('BeneCastPanel' .. id):Show();
 	
-	-- firstfreebutton determines the first button that is not used
+	-- this determines the first button that is not used
 	local firstfreebutton = 1;
 	
 	-- Hide all buttons before redrawing them
@@ -2439,9 +2438,17 @@ function BeneCast_UpdateButtons(id)
 		firstfreebutton = firstfreebutton +1;
 	end
 	
-	-- Show Heal buttons as persistant buttons
-	if ( activeshapeshiftid == 0 or is_TreeOfLife )then --WINTROW.2
+	-- Show Heal buttons as persistent buttons
+	if ( activeshapeshiftid == 0 or is_TreeOfLife )then
 		if ( BeneCast_ShowButton('efficient', firstfreebutton, id, member) ) then
+			-- Fade Healing Touch When tree form
+			if( class == BENECAST_STRINGS.CLASS_DRUID )then
+				if (is_TreeOfLife) then
+					getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton .. 'Fade'):Show();
+				else
+					getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton .. 'Fade'):Hide();
+				end
+			end
 			firstfreebutton = firstfreebutton +1;
 		end
 		if ( BeneCast_ShowButton('efficient2', firstfreebutton, id, member) ) then
@@ -2554,7 +2561,6 @@ function BeneCast_UpdateButtons(id)
 	local wardshown = nil;
 	
 	-- See if a paladin's greater blessing is on the target
-	-- Thanks to Hiroko of Argent Dawn(EU)
 	local gmightshown = nil;
 	local gwisdomshown = nil;
 	local gkingsshown = nil;
@@ -2588,7 +2594,7 @@ function BeneCast_UpdateButtons(id)
 		BeneCast_Tooltip:SetUnitBuff(member, i);
 		-- If the Tooltip has text on the Left1 it may be a buff player can cast
 		if ( BeneCast_TooltipTextLeft1:GetText() ) then
-			-- Make a local for the text (Thnx Shimavak)
+			-- Make a local for the text
 			local lefttext = BeneCast_TooltipTextLeft1:GetText();
 			-- Only check these buffs if we're checking out the player ! (Thnx Shimavak)
 			if UnitIsUnit(member,'player') then
@@ -2677,7 +2683,7 @@ function BeneCast_UpdateButtons(id)
 	end
 	--WINTROW.6 STOP
 	
-	-- A little optimisation, thnx Shimavak
+	-- A little optimization
 	local buff_attrib;
 	if ( BeneCastConfig.ShowAllBuffs ) then
 		buff_attrib = 'fade';
