@@ -2031,6 +2031,29 @@ function BeneCastButton_OnClick()
 	end
 
 	local forcemax, forceoverheal;
+	-- Druid - remove treeform if the Alt key is held down and casting Healing Touch
+	if ( IsAltKeyDown() and BC_class == BENECAST_STRINGS.CLASS_DRUID and spelltype == 'efficient' ) then
+		local is_TreeOfLife = false;
+		local  activeshapeshiftid = 0
+
+		-- Check all shapeshift forms to see if they're active
+		local shapeshiftnum = GetNumShapeshiftForms();
+		local icon, name, active;
+		for i = 1,shapeshiftnum do
+			icon, name, active = GetShapeshiftFormInfo(i);
+			if ( active ) then
+				activeshapeshiftid = i;
+				if( name == 'Tree of Life Form' ) then
+					is_TreeOfLife = true;
+				end
+				do break end
+			end
+		end
+		if( is_TreeOfLife) then
+			CastShapeshiftForm(shapeshiftnum);
+			SpellStopCasting();
+		end
+	end
 	-- Cast Nature's Swiftness before casting the a Druid or Shaman heal if the Alt key is held down
 	if ( IsAltKeyDown() and ( BC_class == BENECAST_STRINGS.CLASS_DRUID or BC_class == BENECAST_STRINGS.CLASS_SHAMAN ) and ( spelltype == 'efficient' or spelltype == 'emergency' ) and BC_spell_data['selfbuff1'] ) then
 		local natureswiftness = BC_spell_data['selfbuff1']['spells'][1];
@@ -2442,7 +2465,7 @@ function BeneCast_UpdateButtons(id)
 	if ( activeshapeshiftid == 0 or is_TreeOfLife )then
 		if ( BeneCast_ShowButton('efficient', firstfreebutton, id, member) ) then
 			-- Fade Healing Touch When tree form
-			if( class == BENECAST_STRINGS.CLASS_DRUID )then
+			if( BC_class == BENECAST_STRINGS.CLASS_DRUID )then
 				if (is_TreeOfLife) then
 					getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton .. 'Fade'):Show();
 				else

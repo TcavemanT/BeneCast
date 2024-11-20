@@ -2874,7 +2874,6 @@
 	<Frame name="BeneCastPanel7" inherits="BeneCastPanelTemplate" id="7"/>
 	<Frame name="BeneCastPanel8" inherits="BeneCastPanelTemplate" id="8"/>
 	<Frame name="BeneCastPanel9" inherits="BeneCastPanelTemplate" id="9"/>
-	<!-- Thanks to Shimavak for fix to raidpanels, panelname 10 and 11 were switched !!! -->
 	<Frame name="BeneCastPanel10" inherits="BeneCastPanelTemplate" id="10"/>
 	<Frame name="BeneCastPanel11" inherits="BeneCastPanelTemplate" id="11"/>
 	<Frame name="BeneCastPanel12" inherits="BeneCastPanelTemplate" id="12"/>
