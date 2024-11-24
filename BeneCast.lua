@@ -10,7 +10,7 @@ BENECAST_VERSION = 2.0;
 -- BeneCast Raid Tables
 -- *****************************************************************************
 BENECAST_RAID_LIST = {};
-BENECAST_RAID_SUBGROUPS = { 0, 0, 0, 0, 0, 0, 0, 0 };
+BENECAST_RAID_SUBGROUPS = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 BENECAST_RAID_ROSTER = {}; -- Raid Roster Cache
 BENECAST_RAID_ROSTER2 = {}; -- Raid Roster Cache, lookup unit by name
 BENECAST_RAID_PANELS = {}; -- panel pool, index = parentframename, value = panelid
@@ -83,7 +83,7 @@ local BeneCastOptionFrameSliders = {
 };
 
 -- Table to hold the different subframe names in the BeneCastOptions frame
-local BeneCastOptionFrameSubframes = {'BeneCastPlayerFrame', 'BeneCastClass1Frame', 'BeneCastClass2Frame', 'BeneCastClass3Frame', 'BeneCastClass4Frame', 'BeneCastClass5Frame', 'BeneCastClass6Frame', 'BeneCastClass7Frame', 'BeneCastClass8Frame', 'BeneCastSetupFrame', 'BeneCastNotificationFrame', 'BeneCastRaidFrame', 'BeneCastSnapToFrame', };
+local BeneCastOptionFrameSubframes = {'BeneCastPlayerFrame', 'BeneCastClass1Frame', 'BeneCastClass2Frame', 'BeneCastClass3Frame', 'BeneCastClass4Frame', 'BeneCastClass5Frame', 'BeneCastClass6Frame', 'BeneCastClass7Frame', 'BeneCastClass8Frame','BeneCastClass9Frame', 'BeneCastSetupFrame', 'BeneCastNotificationFrame', 'BeneCastRaidFrame', 'BeneCastSnapToFrame', };
 
 -- *****************************************************************************
 -- Global variables
@@ -105,7 +105,7 @@ local BC_classes = {
 	[BENECAST_STRINGS.CLASS_WARLOCK]	= 7,
 	[BENECAST_STRINGS.CLASS_WARRIOR]	= 8,
 	[BENECAST_STRINGS.CLASS_SHAMAN]		= 9,
-	[BENECAST_STRINGS.CLASS_PALADIN]	= 9,
+	[BENECAST_STRINGS.CLASS_PALADIN]	= 10,
 }
 
 -- Table used to sort spelltypes
@@ -528,7 +528,7 @@ function BeneCast_LoadSpellConfig()
 	local spellname;
 	
 	-- Assist checkbutton
-	for j = 2,9 do
+	for j = 2,10 do
 		getglobal( BeneCastOptionFrameSubframes[j] .. 'Button' .. i .. 'Text' ):SetText(BENECAST_STRINGS.TEXT_ASSIST);
 		getglobal( BeneCastOptionFrameSubframes[j] .. 'Button' .. i ):Show();
 		getglobal( BeneCastOptionFrameSubframes[j] .. 'Button' .. i ):SetChecked(BeneCastConfig[j]['assist']);
@@ -561,7 +561,7 @@ function BeneCast_LoadSpellConfig()
 					getglobal( BeneCastOptionFrameSubframes[1] .. 'Button' .. i ):SetChecked(BeneCastConfig[1][spelltype]);
 				-- Otherwise add it to every spell subframe
 				else
-					for k = 1,9 do
+					for k = 1,10 do
 						getglobal( BeneCastOptionFrameSubframes[k] .. 'Button' .. i .. 'Text' ):SetText(spellname);
 						getglobal( BeneCastOptionFrameSubframes[k] .. 'Button' .. i ):Show();
 						getglobal( BeneCastOptionFrameSubframes[k] .. 'Button' .. i ):SetChecked(BeneCastConfig[k][spelltype]);
@@ -2408,7 +2408,7 @@ function BeneCast_UpdateButtons(id)
 	local activeshapeshiftid = 0;
 	local is_TreeOfLife = false;
 	-- When a Druid is shapeshifted hide all buttons
-	-- unless  they are tree of life form
+	-- unless they are tree of life form
 	if ( BC_class == BENECAST_STRINGS.CLASS_DRUID ) then
 		-- Check all shapeshift forms to see if they're active
 		local shapeshiftnum = GetNumShapeshiftForms();
@@ -3363,7 +3363,7 @@ function BeneCastSpellCheckButton_OnClick()
 	else
 		local spelltype = BeneCast_SpellTypes[BC_class][spellname];
 		if ( BeneCastConfig['PlayerAsDefault'] and parentid == 1 ) then
-			for i = 1, 9 do
+			for i = 1, 10 do
 				BeneCastConfig[i][spelltype] = this:GetChecked();
 				getglobal(BeneCastOptionFrameSubframes[i] .. 'Button' .. this:GetID()):SetChecked(this:GetChecked());
 			end
@@ -3529,7 +3529,7 @@ end
 function BeneCastPanelManager_OnEvent()
 
 	if ( event == 'ADDON_LOADED' and arg1 == 'BeneCast' ) then
-		-- Reset the data if there BeneCast is severly outdated
+		-- Reset the data if there BeneCast is severely outdated
 		if ( not BeneCastConfig or not BeneCastConfig.Version or BeneCastConfig.Version < BENECAST_VERSION ) then
 			BeneCast_ResetConfig();
 		end
@@ -4042,8 +4042,9 @@ function BeneCast_ResetConfig()
 	BeneCastConfig[7] = {};
 	BeneCastConfig[8] = {};
 	BeneCastConfig[9] = {};
+	BeneCastConfig[10] = {};
 
-	for i = 1,9 do
+	for i = 1,10 do
 		for type in BeneCast_SpellLevel[BC_class] do
 			BeneCastConfig[i][type] = false;
 		end
@@ -4405,31 +4406,25 @@ function BeneCastOptionFrame_OnLoad()
 	getglobal('BeneCastOptionFrameTab8NormalTexture'):SetTexCoord(0, 0.25, 0, 0.25);
 	getglobal('BeneCastOptionFrameTab8').tooltipText = BENECAST_STRINGS.CLASS_WARRIOR;
 	
-	local race, raceEn = UnitRace('player');
+	getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexture('Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes');
+	getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexCoord(0.25, 0.49609375, 0.25, 0.5);
+	getglobal('BeneCastOptionFrameTab9').tooltipText = BENECAST_STRINGS.CLASS_SHAMAN;
 	
-	if ( raceEn == 'Human' or raceEn == 'NightElf' or raceEn == 'Gnome' or raceEn == 'Dwarf' ) then
-		getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexture('Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes');
-		getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexCoord(0.0, 0.25, 0.5, 0.75);
-		getglobal('BeneCastOptionFrameTab9').tooltipText = BENECAST_STRINGS.CLASS_PALADIN;
-		getglobal('BeneCastOptionFrameTab12NormalTexture'):SetTexture('Interface\\Icons\\INV_Banner_02');
-	else
-		getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexture('Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes');
-		getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexCoord(0.25, 0.49609375, 0.25, 0.5);
-		getglobal('BeneCastOptionFrameTab9').tooltipText = BENECAST_STRINGS.CLASS_SHAMAN;
-		getglobal('BeneCastOptionFrameTab12NormalTexture'):SetTexture('Interface\\Icons\\INV_Banner_03');
-	end
+	getglobal('BeneCastOptionFrameTab10NormalTexture'):SetTexture('Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes');
+	getglobal('BeneCastOptionFrameTab10NormalTexture'):SetTexCoord(0.0, 0.25, 0.5, 0.75);
+	getglobal('BeneCastOptionFrameTab10').tooltipText = BENECAST_STRINGS.CLASS_PALADIN;
 	
-	getglobal('BeneCastOptionFrameTab10NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Wrench_01');
-	getglobal('BeneCastOptionFrameTab10').tooltipText = BENECAST_STRINGS.TEXT_SETUP;
+	getglobal('BeneCastOptionFrameTab11NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Wrench_01');
+	getglobal('BeneCastOptionFrameTab11').tooltipText = BENECAST_STRINGS.TEXT_SETUP;
 	
-	getglobal('BeneCastOptionFrameTab11NormalTexture'):SetTexture('Interface\\Icons\\INV_Letter_08');
-	getglobal('BeneCastOptionFrameTab11').tooltipText = BENECAST_STRINGS.TEXT_NOTIFICATION;
+	getglobal('BeneCastOptionFrameTab12NormalTexture'):SetTexture('Interface\\Icons\\INV_Letter_08');
+	getglobal('BeneCastOptionFrameTab12').tooltipText = BENECAST_STRINGS.TEXT_NOTIFICATION;
 	
-	getglobal('BeneCastOptionFrameTab12NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Head_Dragon_01');
-	getglobal('BeneCastOptionFrameTab12').tooltipText = BENECAST_STRINGS.TEXT_RAID;
+	getglobal('BeneCastOptionFrameTab13NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Head_Dragon_01');
+	getglobal('BeneCastOptionFrameTab13').tooltipText = BENECAST_STRINGS.TEXT_RAID;
 
-	getglobal('BeneCastOptionFrameTab13NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Wrench_02');
-	getglobal('BeneCastOptionFrameTab13').tooltipText = 'Unit Frames';
+	getglobal('BeneCastOptionFrameTab14NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Wrench_02');
+	getglobal('BeneCastOptionFrameTab14').tooltipText = 'Unit Frames';
 
 end
 

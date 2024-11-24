@@ -1138,7 +1138,15 @@
 					</Anchor>
 				</Anchors>
 			</CheckButton>
-			
+			<CheckButton name="BeneCastOptionFrameTab14" inherits="BeneCastOptionFrameTabTemplate" id="14">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="BeneCastOptionFrameTab13" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="0" y="-7"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</CheckButton>
 			<!-- Sub-frames for the OptionsFrame -->
 			<!-- Spell selection sub-frames for the OptionsFrame -->
 			<Frame name="BeneCastPlayerFrame" inherits="BeneCastOptionsSubFrameTemplate" id="1" parent="BeneCastOptionFrame" hidden="false"/>
@@ -1150,7 +1158,8 @@
 			<Frame name="BeneCastClass6Frame" inherits="BeneCastOptionsSubFrameTemplate" id="7" parent="BeneCastOptionFrame"/>
 			<Frame name="BeneCastClass7Frame" inherits="BeneCastOptionsSubFrameTemplate" id="8" parent="BeneCastOptionFrame"/>
 			<Frame name="BeneCastClass8Frame" inherits="BeneCastOptionsSubFrameTemplate" id="9" parent="BeneCastOptionFrame"/>
-			
+			<Frame name="BeneCastClass9Frame" inherits="BeneCastOptionsSubFrameTemplate" id="10" parent="BeneCastOptionFrame"/>
+
 			<!-- Option Checkbutton for using the player spell selection for everyone
 			It is a part of BeneCastPlayerFrame -->
 			<!-- Cascade Player Config -->
@@ -1167,7 +1176,7 @@
 			<!-- Configuration sub-frames for the OptionsFrame -->
 			
 			<!-- Setup subframe -->
-			<Frame name="BeneCastSetupFrame" id="10" parent="BeneCastOptionFrame" hidden="true">
+			<Frame name="BeneCastSetupFrame" id="11" parent="BeneCastOptionFrame" hidden="true">
 				
 				<!-- Size of the subframe -->
 				<Size>
@@ -1477,7 +1486,7 @@
 			</Frame>
 			
 			<!-- Notification Subframe -->
-			<Frame name="BeneCastNotificationFrame" id="11" parent="BeneCastOptionFrame" hidden="true">
+			<Frame name="BeneCastNotificationFrame" id="12" parent="BeneCastOptionFrame" hidden="true">
 
 				<!-- Size of the subframe -->
 				<Size>
@@ -1687,7 +1696,7 @@
 			</Frame>
 			
 			<!-- Raid Subframe -->
-			<Frame name="BeneCastRaidFrame" id="12" parent="BeneCastOptionFrame" hidden="true">
+			<Frame name="BeneCastRaidFrame" id="13" parent="BeneCastOptionFrame" hidden="true">
 				
 				<!-- Size of the subframe -->
 				<Size>
@@ -2020,9 +2029,8 @@
 				</Frames>
 			</Frame>
 			
-			<!-- WINTROW.6 START -->
 			<!-- Custom SnapTo Frame -->
-			<Frame name="BeneCastSnapToFrame" id="13" parent="BeneCastOptionFrame" hidden="true">
+			<Frame name="BeneCastSnapToFrame" id="14" parent="BeneCastOptionFrame" hidden="true">
 				
 				<!-- Size of the subframe -->
 				<Size>
@@ -2847,7 +2855,6 @@
 					</EditBox>
 				</Frames>
 			</Frame>
-			<!-- WINTROW.6 STOP -->
 			
 		</Frames>
 		
