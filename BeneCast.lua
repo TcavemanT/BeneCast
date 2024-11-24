@@ -2522,56 +2522,51 @@ function BeneCast_UpdateButtons(id)
 	BC_spirit_of_redemption = nil;
 	
 	-- Cycle through the Units Debuffs to find removable effects
-	while ( UnitDebuff(member, i) ) do
-
-		-- Set BeneCast_Tooltip to the debuff at iterator i, be sure to clear the relevant text first
-		BeneCast_TooltipTextRight1:SetText('');
-		BeneCast_TooltipTextLeft1:SetText('');
-		BeneCast_Tooltip:SetUnitDebuff(member, i);
-		-- Check to see if this debuff is Weakened Soul and save it for when you get to the buffs
-		if ( BeneCast_TooltipTextLeft1:GetText() == BENECAST_STRINGS.AILMENT_WEAKENED_SOUL ) then
-			weakenedsoul = true;
+	local texture, stacks, type, id2 = UnitDebuff(member, i)
+	while ( texture ~= nil ) do
+		if ( BC_class == BENECAST_STRINGS.CLASS_PRIEST ) then
+			-- Set BeneCast_Tooltip to the debuff at iterator i, be sure to clear the relevant text first
+			BeneCast_TooltipTextRight1:SetText('');
+			BeneCast_TooltipTextLeft1:SetText('');
+			BeneCast_Tooltip:SetUnitDebuff(member, i);
+			-- Check to see if this debuff is Weakened Soul and save it for when you get to the buffs
+			if ( BeneCast_TooltipTextLeft1:GetText() == BENECAST_STRINGS.AILMENT_WEAKENED_SOUL ) then
+				weakenedsoul = true;
+			end
+			if ( BeneCast_TooltipTextLeft1:GetText() == BENECAST_STRINGS.AILMENT_SPIRIT_OF_REDEMPTION ) then
+				BC_spirit_of_redemption = true;
+			end
 		end
-		--WINTROW.6 START
-		if ( BeneCast_TooltipTextLeft1:GetText() == BENECAST_STRINGS.AILMENT_SPIRIT_OF_REDEMPTION ) then
-			BC_spirit_of_redemption = true;
-		end
-		--WINTROW.6 STOP
-		-- If the Tooltip has text on the Right1 it may be removable
-		if ( BeneCast_TooltipTextRight1:GetText() ) then
-			local effect = BeneCast_TooltipTextRight1:GetText();
-			if effect == BENECAST_STRINGS.AILMENT_POISON then
+		-- Check for removables
+		if ( type == BENECAST_STRINGS.AILMENT_POISON )then
+			poisonshow = true;
+		elseif ( type == BENECAST_STRINGS.AILMENT_DISEASE ) then
+			-- Paladins can cure diseases but don't have a spell with the 'disease' spelltype
+			-- The Paladin spell that cures poisons also cures diseases
+			if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN ) then
 				poisonshow = true;
-			elseif ( effect == BENECAST_STRINGS.AILMENT_DISEASE ) then
-				-- Paladins can cure diseases but don't have a spell with the 'disease' spelltype
-				-- The Paladin spell that cures poisons also cures diseases
-				if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN ) then
+			else
+				diseaseshow = true;
+			end
+		elseif ( type == BENECAST_STRINGS.AILMENT_MAGIC ) then
+			-- Paladins can cure magic with Cleanse which is of the 'poison' spelltype
+			-- If the Paladin has Cleanse have it show Cleanse
+			--if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN and BC_spell_data['poison']['spells'][2] ) then
+			if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN and BC_spell_data['poison'] ) then
+				if BC_spell_data['poison']['spells'][2] then
 					poisonshow = true;
-				else
-					diseaseshow = true;
-				end
-			elseif ( effect == BENECAST_STRINGS.AILMENT_MAGIC ) then
-				-- Paladins can cure magic with Cleanse which is of the 'poison' spelltype
-				-- If the Paladin has Cleanse have it show Cleanse
-				--WINTROW.6 START
-				--if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN and BC_spell_data['poison']['spells'][2] ) then
-				if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN and BC_spell_data['poison'] ) then
-					if BC_spell_data['poison']['spells'][2] then
-				--WINTROW.6 STOP
-						poisonshow = true;
-					--WINTROW.6 START
-					else
-						magicshow = true;
-					end
-					--WINTROW.6 STOP
 				else
 					magicshow = true;
 				end
-			elseif ( effect == BENECAST_STRINGS.AILMENT_CURSE ) then
-				curseshow = true;
+			else
+				magicshow = true;
 			end
+		elseif ( type == BENECAST_STRINGS.AILMENT_CURSE ) then
+			curseshow = true;
 		end
+
 		i = i + 1;
+		texture, stacks, type, id2 = UnitDebuff(member, i)
 	end
 	
 	-- Show Buff buttons as temporary buttons
