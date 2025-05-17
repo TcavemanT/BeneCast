@@ -10,7 +10,7 @@ BENECAST_VERSION = 2.0;
 -- BeneCast Raid Tables
 -- *****************************************************************************
 BENECAST_RAID_LIST = {};
-BENECAST_RAID_SUBGROUPS = { 0, 0, 0, 0, 0, 0, 0, 0 };
+BENECAST_RAID_SUBGROUPS = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 BENECAST_RAID_ROSTER = {}; -- Raid Roster Cache
 BENECAST_RAID_ROSTER2 = {}; -- Raid Roster Cache, lookup unit by name
 BENECAST_RAID_PANELS = {}; -- panel pool, index = parentframename, value = panelid
@@ -83,7 +83,7 @@ local BeneCastOptionFrameSliders = {
 };
 
 -- Table to hold the different subframe names in the BeneCastOptions frame
-local BeneCastOptionFrameSubframes = {'BeneCastPlayerFrame', 'BeneCastClass1Frame', 'BeneCastClass2Frame', 'BeneCastClass3Frame', 'BeneCastClass4Frame', 'BeneCastClass5Frame', 'BeneCastClass6Frame', 'BeneCastClass7Frame', 'BeneCastClass8Frame', 'BeneCastSetupFrame', 'BeneCastNotificationFrame', 'BeneCastRaidFrame', 'BeneCastSnapToFrame', };
+local BeneCastOptionFrameSubframes = {'BeneCastPlayerFrame', 'BeneCastClass1Frame', 'BeneCastClass2Frame', 'BeneCastClass3Frame', 'BeneCastClass4Frame', 'BeneCastClass5Frame', 'BeneCastClass6Frame', 'BeneCastClass7Frame', 'BeneCastClass8Frame','BeneCastClass9Frame', 'BeneCastSetupFrame', 'BeneCastNotificationFrame', 'BeneCastRaidFrame', 'BeneCastSnapToFrame', };
 
 -- *****************************************************************************
 -- Global variables
@@ -105,7 +105,7 @@ local BC_classes = {
 	[BENECAST_STRINGS.CLASS_WARLOCK]	= 7,
 	[BENECAST_STRINGS.CLASS_WARRIOR]	= 8,
 	[BENECAST_STRINGS.CLASS_SHAMAN]		= 9,
-	[BENECAST_STRINGS.CLASS_PALADIN]	= 9,
+	[BENECAST_STRINGS.CLASS_PALADIN]	= 10,
 }
 
 -- Table used to sort spelltypes
@@ -234,6 +234,9 @@ local BC_threshold = 1;
 
 -- Class of the player
 local BC_class;
+local BC_IsPlayerDruid;
+local BC_IsPlayerPriest;
+local BC_IsPlayerPaladin
 
 -- Party notification stuff
 local BC_spellbeingcast = nil;
@@ -254,6 +257,7 @@ local BC_innerfocus = nil;
 local BC_AttachPartyFramesOnTargetChange = nil;
 local BC_MarkedTCTable = nil;
 local BC_LastTCCheck = nil;
+local BC_ActiveShapeshiftId = 0;
 
 local BC_BonusScanner_HookFunction = nil;
 
@@ -528,7 +532,7 @@ function BeneCast_LoadSpellConfig()
 	local spellname;
 	
 	-- Assist checkbutton
-	for j = 2,9 do
+	for j = 2,10 do
 		getglobal( BeneCastOptionFrameSubframes[j] .. 'Button' .. i .. 'Text' ):SetText(BENECAST_STRINGS.TEXT_ASSIST);
 		getglobal( BeneCastOptionFrameSubframes[j] .. 'Button' .. i ):Show();
 		getglobal( BeneCastOptionFrameSubframes[j] .. 'Button' .. i ):SetChecked(BeneCastConfig[j]['assist']);
@@ -561,7 +565,7 @@ function BeneCast_LoadSpellConfig()
 					getglobal( BeneCastOptionFrameSubframes[1] .. 'Button' .. i ):SetChecked(BeneCastConfig[1][spelltype]);
 				-- Otherwise add it to every spell subframe
 				else
-					for k = 1,9 do
+					for k = 1,10 do
 						getglobal( BeneCastOptionFrameSubframes[k] .. 'Button' .. i .. 'Text' ):SetText(spellname);
 						getglobal( BeneCastOptionFrameSubframes[k] .. 'Button' .. i ):Show();
 						getglobal( BeneCastOptionFrameSubframes[k] .. 'Button' .. i ):SetChecked(BeneCastConfig[k][spelltype]);
@@ -1260,7 +1264,7 @@ function BeneCast_LoadSpellData()
 
 			-- If the player class is Paladin and the spell is Lay on Hands set heal_amount to zero
 			-- This is to ensure that the highest rank is always used
-			if BC_class == BENECAST_STRINGS.CLASS_PALADIN and spell_type == 'loh' then
+			if BC_IsPlayerPaladin and spell_type == 'loh' then
 				heal_amount = 0;
 			end
 			if not heal_amount then
@@ -1391,8 +1395,8 @@ function BeneCast_ChooseSpell(type, target, forcemax, forceoverheal)
 			PutDebugMsg('Shift Key down, reversing DmgBasedHealing');
 		end
 		--HoT's are always max-rank if DBH and ReverseHoTs is enabled or both are disabled
-		if ( BC_class == BENECAST_STRINGS.CLASS_PRIEST and type == 'instant' ) or
-		   ( BC_class == BENECAST_STRINGS.CLASS_DRUID and ( type == 'instant' or type == 'emergency' ) ) then
+		if ( BC_IsPlayerPriest and type == 'instant' ) or
+		   ( BC_IsPlayerDruid and ( type == 'instant' or type == 'emergency' ) ) then
 			if BeneCastConfig.ReverseHoTs then
 				usemaxspell = not usemaxspell;
 			end
@@ -1723,7 +1727,7 @@ function BeneCast_BindingCast(id)
 	
 	local forcemax, forceoverheal;
 	-- Cast Nature's Swiftness before casting the a Druid or Shaman heal if the Alt key is held down
-	if ( IsAltKeyDown() and ( BC_class == BENECAST_STRINGS.CLASS_DRUID or BC_class == BENECAST_STRINGS.CLASS_SHAMAN ) and ( spelltype == 'efficient' or spelltype == 'emergency' ) and BC_spell_data['selfbuff1'] ) then
+	if ( IsAltKeyDown() and ( BC_IsPlayerDruid or BC_class == BENECAST_STRINGS.CLASS_SHAMAN ) and ( spelltype == 'efficient' or spelltype == 'emergency' ) and BC_spell_data['selfbuff1'] ) then
 		local natureswiftness = BC_spell_data['selfbuff1']['spells'][1];
 		CastSpell(natureswiftness.id, SpellBookFrame.bookType);
 		SpellStopCasting();
@@ -1738,8 +1742,8 @@ function BeneCast_BindingCast(id)
 	-- Try casting the spell if it exists
 	if ( spell ) then
 		-- Dispel Magic can be used offensively, always target the intended target
-		if ( (BC_class == BENECAST_STRINGS.CLASS_PRIEST and spelltype == 'magic') or 
-		     (BC_class == BENECAST_STRINGS.CLASS_PALADIN and spelltype == 'instant') ) and 
+		if ( (BC_IsPlayerPriest and spelltype == 'magic') or 
+		     (BC_IsPlayerPaladin and spelltype == 'instant') ) and 
 		   UnitCanAttack('player', 'target')  then
 			retarget_enemy = UnitCanAttack('player', 'target');
 			--WINTROW.6 TargetUnit(target);
@@ -2032,9 +2036,9 @@ function BeneCastButton_OnClick()
 
 	local forcemax, forceoverheal;
 	-- Druid - remove treeform if the Alt key is held down and casting Healing Touch
-	if ( IsAltKeyDown() and BC_class == BENECAST_STRINGS.CLASS_DRUID and spelltype == 'efficient' ) then
+	if ( IsAltKeyDown() and BC_IsPlayerDruid and spelltype == 'efficient' ) then
 		local is_TreeOfLife = false;
-		local  activeshapeshiftid = 0
+		local activeshapeshiftid = 0
 
 		-- Check all shapeshift forms to see if they're active
 		local shapeshiftnum = GetNumShapeshiftForms();
@@ -2055,7 +2059,7 @@ function BeneCastButton_OnClick()
 		end
 	end
 	-- Cast Nature's Swiftness before casting the a Druid or Shaman heal if the Alt key is held down
-	if ( IsAltKeyDown() and ( BC_class == BENECAST_STRINGS.CLASS_DRUID or BC_class == BENECAST_STRINGS.CLASS_SHAMAN ) and ( spelltype == 'efficient' or spelltype == 'emergency' ) and BC_spell_data['selfbuff1'] ) then
+	if ( IsAltKeyDown() and ( BC_IsPlayerDruid or BC_class == BENECAST_STRINGS.CLASS_SHAMAN ) and ( spelltype == 'efficient' or spelltype == 'emergency' ) and BC_spell_data['selfbuff1'] ) then
 		local natureswiftness = BC_spell_data['selfbuff1']['spells'][1];
 		CastSpell(natureswiftness.id, SpellBookFrame.bookType);
 		SpellStopCasting();
@@ -2070,8 +2074,8 @@ function BeneCastButton_OnClick()
 	-- Try casting the spell if it exists
 	if ( spell ) then
 		-- Dispel Magic can be used offensively, always target the intended target
-		if ( (BC_class == BENECAST_STRINGS.CLASS_PRIEST and spelltype == 'magic') or
-		     (BC_class == BENECAST_STRINGS.CLASS_PALADIN and spelltype == 'instant') ) and 
+		if ( (BC_IsPlayerPriest and spelltype == 'magic') or
+		     (BC_IsPlayerPaladin and spelltype == 'instant') ) and 
 		   UnitCanAttack('player', 'target') then
 			retarget_enemy = true;
 			if BeneCastConfig.Debug then
@@ -2276,7 +2280,13 @@ function BeneCast_HideButton(buttonnum, id, member)
 
 end
 
---WINTROW.6 START
+function BeneCast_UpdateAllButtons()
+	-- Redraw everyone's buttons
+	for i in BC_targets do
+		BeneCast_UpdateButtons(i);
+	end
+end
+
 -- Function used to update buttons for a unitid
 function BeneCast_UpdateButtonsForUnit(unitid)
 	local panelids;
@@ -2291,7 +2301,6 @@ function BeneCast_UpdateButtonsForUnit(unitid)
 		end
 	end
 end
---WINTROW.6 STOP
 
 -- Function used to update buttons for all possible targets
 function BeneCast_UpdateButtons(id)
@@ -2334,7 +2343,7 @@ function BeneCast_UpdateButtons(id)
 
 	-- Hide this BeneCastPanel frame if member is not friendly/mindcontrolled
 	if UnitIsCharmed(member) then
-		-- Show dispell if it's a mindcontrolled unit
+		-- Show dispel if it's a mindcontrolled unit
 		if ( BC_spell_data['magic'] ) then
 			if ( BeneCast_ShowButton('magic', 1, id, member) ) then
 				getglobal('BeneCastPanel' .. id):Show();
@@ -2382,7 +2391,7 @@ function BeneCast_UpdateButtons(id)
 		end
 	end
 	
-	-- If the player can ressurect this member then show the res button and return
+	-- If the player can resurrect this member then show the res button and return
 	if ( ( UnitIsDead(member) or UnitIsGhost(member) ) and not UnitBuff(member, 1) ) then
 		if ( BC_spell_data['res'] ) then
 			if ( BeneCast_ShowButton('res', 1, id, member) ) then
@@ -2408,8 +2417,8 @@ function BeneCast_UpdateButtons(id)
 	local activeshapeshiftid = 0;
 	local is_TreeOfLife = false;
 	-- When a Druid is shapeshifted hide all buttons
-	-- unless  they are tree of life form
-	if ( BC_class == BENECAST_STRINGS.CLASS_DRUID ) then
+	-- unless they are tree of life form
+	if ( BC_IsPlayerDruid ) then
 		-- Check all shapeshift forms to see if they're active
 		local shapeshiftnum = GetNumShapeshiftForms();
 		local icon, name, active;
@@ -2465,7 +2474,7 @@ function BeneCast_UpdateButtons(id)
 	if ( activeshapeshiftid == 0 or is_TreeOfLife )then
 		if ( BeneCast_ShowButton('efficient', firstfreebutton, id, member) ) then
 			-- Fade Healing Touch When tree form
-			if( BC_class == BENECAST_STRINGS.CLASS_DRUID )then
+			if( BC_IsPlayerDruid )then
 				if (is_TreeOfLife) then
 					getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton .. 'Fade'):Show();
 				else
@@ -2524,7 +2533,7 @@ function BeneCast_UpdateButtons(id)
 	-- Cycle through the Units Debuffs to find removable effects
 	local texture, stacks, type, id2 = UnitDebuff(member, i)
 	while ( texture ~= nil ) do
-		if ( BC_class == BENECAST_STRINGS.CLASS_PRIEST ) then
+		if ( BC_IsPlayerPriest ) then
 			-- Set BeneCast_Tooltip to the debuff at iterator i, be sure to clear the relevant text first
 			BeneCast_TooltipTextRight1:SetText('');
 			BeneCast_TooltipTextLeft1:SetText('');
@@ -2543,7 +2552,7 @@ function BeneCast_UpdateButtons(id)
 		elseif ( type == BENECAST_STRINGS.AILMENT_DISEASE ) then
 			-- Paladins can cure diseases but don't have a spell with the 'disease' spelltype
 			-- The Paladin spell that cures poisons also cures diseases
-			if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN ) then
+			if ( BC_IsPlayerPaladin ) then
 				poisonshow = true;
 			else
 				diseaseshow = true;
@@ -2551,8 +2560,8 @@ function BeneCast_UpdateButtons(id)
 		elseif ( type == BENECAST_STRINGS.AILMENT_MAGIC ) then
 			-- Paladins can cure magic with Cleanse which is of the 'poison' spelltype
 			-- If the Paladin has Cleanse have it show Cleanse
-			--if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN and BC_spell_data['poison']['spells'][2] ) then
-			if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN and BC_spell_data['poison'] ) then
+			--if ( BC_IsPlayerPaladin and BC_spell_data['poison']['spells'][2] ) then
+			if ( BC_IsPlayerPaladin and BC_spell_data['poison'] ) then
 				if BC_spell_data['poison']['spells'][2] then
 					poisonshow = true;
 				else
@@ -2635,13 +2644,13 @@ function BeneCast_UpdateButtons(id)
 			local effect = BeneCast_SpellTypes[BC_class][lefttext];
 			-- If the effect is a groupbuff set showgroupbuff to true
 			if ( effect ) then
-				if ( ( BC_class == BENECAST_STRINGS.CLASS_PRIEST or 
-				       BC_class == BENECAST_STRINGS.CLASS_DRUID or 
+				if ( ( BC_IsPlayerPriest or 
+				       BC_IsPlayerDruid or 
 				       BC_class == BENECAST_STRINGS.CLASS_MAGE ) and string.find(effect,'groupbuff(.+)') ) then
 				        local tmp;
 				        _, _, tmp = string.find(effect,'groupbuff(.+)');
 					table.insert(groupbuffsshown,tmp);
-				elseif ( BC_class == BENECAST_STRINGS.CLASS_PALADIN and string.find(effect,'buffparty(.+)g') ) then
+				elseif ( BC_IsPlayerPaladin and string.find(effect,'buffparty(.+)g') ) then
 					local tmp;
 					_, _, tmp = string.find(effect,'buffparty(.+)g');
 					table.insert(groupblessingsshown,tmp);
@@ -2653,7 +2662,7 @@ function BeneCast_UpdateButtons(id)
 			
 			--[[
 			-- If the effect is a paladin greater blessing
-			if ( BC_class == BENECAST_STRINGS.CLASS_PALADIN ) then
+			if ( BC_IsPlayerPaladin ) then
 				if (effect == 'buffparty1g') then
 					gmightshown = true;
 				elseif (effect == 'buffparty5g') then
@@ -2711,8 +2720,8 @@ function BeneCast_UpdateButtons(id)
 	
 	-- Make _buff_shown for PW:F, AI, or MotW on the intended target true if they have the groupbuff on them
 	-- Set fade to true if ShowAllBuffs, else set shown to true
-	if ( ( BC_class == BENECAST_STRINGS.CLASS_PRIEST or 
-	       BC_class == BENECAST_STRINGS.CLASS_DRUID or 
+	if ( ( BC_IsPlayerPriest or 
+	       BC_IsPlayerDruid or 
 	       BC_class == BENECAST_STRINGS.CLASS_MAGE ) and table.getn(groupbuffsshown) > 0 ) then 
 		for k, buffno in groupbuffsshown do
 			local effect = 'buff' .. buffno;
@@ -2724,7 +2733,7 @@ function BeneCast_UpdateButtons(id)
 				BC_buffs_in_effect[j][buff_attrib] = true;
 			end
 		end  
-	elseif ( BC_class == BENECAST_STRINGS.CLASS_PALADIN and table.getn(groupblessingsshown) > 0 ) then
+	elseif ( BC_IsPlayerPaladin and table.getn(groupblessingsshown) > 0 ) then
 		for k, blessingno in groupblessingsshown do 
 			local effect = 'buff' .. blessingno;
 			local j = nil;
@@ -2752,7 +2761,7 @@ function BeneCast_UpdateButtons(id)
 	end
 	
 	--Show Swiftmend if applicable
-	if ( BC_class == BENECAST_STRINGS.CLASS_DRUID and ( activeshapeshiftid == 0 or is_TreeOfLife ) ) then
+	if ( BC_IsPlayerDruid and ( activeshapeshiftid == 0 or is_TreeOfLife ) ) then
 		if BC_buffs_in_effect[46][buff_attrib] or BC_buffs_in_effect[47][buff_attrib] then
 			if BeneCast_ShowButton('instant2', firstfreebutton, id, member) then
 				firstfreebutton = firstfreebutton +1;
@@ -2778,7 +2787,7 @@ function BeneCast_UpdateButtons(id)
 				-- Do nothing
 			else
 	 			local balancebuff = false;
-				if BC_class == BENECAST_STRINGS.CLASS_DRUID then
+				if BC_IsPlayerDruid then
 					if ( BC_buffs_in_effect[j].name == 'selfbuff2' ) then
 						balancebuff = true;
 					end
@@ -2797,7 +2806,7 @@ function BeneCast_UpdateButtons(id)
 					if ( not BC_buffs_in_effect[j].ineffect ) then
 						if ( BeneCast_ShowButton(BC_buffs_in_effect[j].name, firstfreebutton, id, member) ) then
 							-- Make this button hide if it is for PW:S and the effect Weakened Soul is on the target
-							if ( BC_class == BENECAST_STRINGS.CLASS_PRIEST and BC_buffs_in_effect[j].name == 'partybuff1' and weakenedsoul and not BeneCastConfig.ShowAllBuffs ) then
+							if ( BC_IsPlayerPriest and BC_buffs_in_effect[j].name == 'partybuff1' and weakenedsoul and not BeneCastConfig.ShowAllBuffs ) then
 								getglobal('BeneCastPanel' .. id .. 'Button' .. firstfreebutton):Hide()
 								firstfreebutton = firstfreebutton - 1;
 							end
@@ -2843,7 +2852,7 @@ function BeneCast_UpdateButtons(id)
 				end
 			end
 		end
-		if ( BC_class == BENECAST_STRINGS.CLASS_PRIEST ) then
+		if ( BC_IsPlayerPriest ) then
 			if ( BC_weaponenchant ~= BENECAST_STRINGS.WEAPONENCHANT_FEEDBACK ) then
 				if ( BeneCast_ShowButton('weaponenchant1', firstfreebutton, id, member) ) then
 					firstfreebutton = firstfreebutton+1;
@@ -2906,7 +2915,7 @@ function BeneCast_UpdateButtons(id)
 		end
 	end
 	if BC_buttons_by_spell[member] then
-		if ( BC_class == BENECAST_STRINGS.CLASS_PRIEST ) then
+		if ( BC_IsPlayerPriest ) then
 			if BC_buffs_in_effect[46].ineffect or BC_buffs_in_effect[46].fade then
 				PutDebugMsg('"instant" is in effect');
 				if BC_buttons_by_spell[member]['instant'] then
@@ -2920,7 +2929,7 @@ function BeneCast_UpdateButtons(id)
 				end
 			end
 		end
-		if ( BC_class == BENECAST_STRINGS.CLASS_DRUID ) then
+		if ( BC_IsPlayerDruid ) then
 			if BC_buffs_in_effect[46].ineffect or BC_buffs_in_effect[46].fade then
 				PutDebugMsg('"instant" is in effect');				
 				if BC_buttons_by_spell[member]['instant'] then
@@ -3358,7 +3367,7 @@ function BeneCastSpellCheckButton_OnClick()
 	else
 		local spelltype = BeneCast_SpellTypes[BC_class][spellname];
 		if ( BeneCastConfig['PlayerAsDefault'] and parentid == 1 ) then
-			for i = 1, 9 do
+			for i = 1, 10 do
 				BeneCastConfig[i][spelltype] = this:GetChecked();
 				getglobal(BeneCastOptionFrameSubframes[i] .. 'Button' .. this:GetID()):SetChecked(this:GetChecked());
 			end
@@ -3490,8 +3499,16 @@ end
 
 function BeneCastPanelManager_OnLoad()
 
-	-- Set BC_class to the player's class
+	-- Save player class name
 	BC_class = UnitClass('player');
+	-- cache player class booleans
+	if( BC_class == BENECAST_STRINGS.CLASS_DRUID ) then
+		BC_IsPlayerDruid = true;
+	elseif( BC_class == BENECAST_STRINGS.CLASS_PRIEST ) then
+		BC_IsPlayerPriest = true;
+	elseif( BC_class == BENECAST_STRINGS.CLASS_PALADIN ) then
+		BC_IsPlayerPaladin = true;
+	end
 	
 	-- Register for Events
 	this:RegisterEvent('ADDON_LOADED');
@@ -3505,7 +3522,7 @@ function BeneCastPanelManager_OnLoad()
 	this:RegisterEvent('UNIT_AURA');
 	this:RegisterEvent('PLAYER_AURAS_CHANGED');
 	this:RegisterEvent('UNIT_AURASTATE');
-	this:RegisterEvent('UPDATE_SHAPESHIFT_FORMS');
+	--this:RegisterEvent('UPDATE_SHAPESHIFT_FORMS');
 	this:RegisterEvent('PLAYER_ALIVE');
 	this:RegisterEvent('PLAYER_DEAD');
 	this:RegisterEvent('PLAYER_UNGHOST');
@@ -3524,7 +3541,7 @@ end
 function BeneCastPanelManager_OnEvent()
 
 	if ( event == 'ADDON_LOADED' and arg1 == 'BeneCast' ) then
-		-- Reset the data if there BeneCast is severly outdated
+		-- Reset the data if there BeneCast is severely outdated
 		if ( not BeneCastConfig or not BeneCastConfig.Version or BeneCastConfig.Version < BENECAST_VERSION ) then
 			BeneCast_ResetConfig();
 		end
@@ -3700,9 +3717,23 @@ function BeneCastPanelManager_OnEvent()
 		BeneCast_UpdateButtonsForUnit(arg1);
 		
 	elseif ( event == 'PLAYER_AURAS_CHANGED' ) then
+	-- Called when a buff or debuff is either applied to a unit or is removed from the player.
+	-- Called when a druid changes form or prowl state
+		--PutMsg('**PLAYER_AURAS_CHANGED**');
 		if BC_AttachPartyFrames then
 			BeneCast_AttachPartyPanelsFromVar();
 			BC_AttachPartyFrames = nil;
+		end
+		--BeneCast_UpdateButtonsForUnit('player');
+		if( BC_IsPlayerDruid ) then
+			local shapeshiftID = BeneCast_GetShapeshiftId();
+			if( BC_ActiveShapeshiftId ~= shapeshiftID ) then
+				BC_ActiveShapeshiftId = shapeshiftID;
+				--PutMsg('**Shapeshift_CHANGED**');
+				-- Redraw everyone's buttons
+				BeneCast_UpdateAllButtons();
+				return;
+			end
 		end
 		BeneCast_UpdateButtonsForUnit('player');
 	
@@ -3779,11 +3810,14 @@ function BeneCastPanelManager_OnEvent()
 			BeneCast_UpdateButtonsForUnit(arg1);
 		end
 		
-	elseif ( event == 'UPDATE_SHAPESHIFT_FORMS' ) then
-		-- Redraw everyone's buttons
-		for i in BC_targets do
-			BeneCast_UpdateButtons(i);
-		end
+	--elseif ( event == 'UPDATE_SHAPESHIFT_FORMS' ) then
+	---- This is for when the available set of forms changes
+	--	PutMsg( '**UPDATE_SHAPESHIFT_FORMS**' );
+	---- Do we need to even respond to the event?
+	--	-- Redraw everyone's buttons
+	--	for i in BC_targets do
+	--		BeneCast_UpdateButtons(i);
+	--	end
 		
 	--[[ -- Now uses BonusScanner for +healing
 	elseif ( event == 'UNIT_INVENTORY_CHANGED' and arg1 == 'player' ) then
@@ -3797,7 +3831,7 @@ function BeneCastPanelManager_OnEvent()
 		this:RegisterEvent('UNIT_AURA');
 		this:RegisterEvent('PLAYER_AURAS_CHANGED');
 		this:RegisterEvent('UNIT_AURASTATE');
-		this:RegisterEvent('UPDATE_SHAPESHIFT_FORMS');
+		--this:RegisterEvent('UPDATE_SHAPESHIFT_FORMS');
 		this:RegisterEvent('UNIT_HEALTH');
 		this:RegisterEvent('ACTIONBAR_SLOT_CHANGED');
 		--this:RegisterEvent('UNIT_INVENTORY_CHANGED');
@@ -3807,7 +3841,7 @@ function BeneCastPanelManager_OnEvent()
 		this:UnregisterEvent('UNIT_AURA');
 		this:UnregisterEvent('PLAYER_AURAS_CHANGED');
 		this:UnregisterEvent('UNIT_AURASTATE');
-		this:UnregisterEvent('UPDATE_SHAPESHIFT_FORMS');
+		--this:UnregisterEvent('UPDATE_SHAPESHIFT_FORMS');
 		this:UnregisterEvent('UNIT_HEALTH');
 		this:UnregisterEvent('ACTIONBAR_SLOT_CHANGED');
 		--this:UnregisterEvent('UNIT_INVENTORY_CHANGED');	
@@ -4037,8 +4071,9 @@ function BeneCast_ResetConfig()
 	BeneCastConfig[7] = {};
 	BeneCastConfig[8] = {};
 	BeneCastConfig[9] = {};
+	BeneCastConfig[10] = {};
 
-	for i = 1,9 do
+	for i = 1,10 do
 		for type in BeneCast_SpellLevel[BC_class] do
 			BeneCastConfig[i][type] = false;
 		end
@@ -4400,31 +4435,25 @@ function BeneCastOptionFrame_OnLoad()
 	getglobal('BeneCastOptionFrameTab8NormalTexture'):SetTexCoord(0, 0.25, 0, 0.25);
 	getglobal('BeneCastOptionFrameTab8').tooltipText = BENECAST_STRINGS.CLASS_WARRIOR;
 	
-	local race, raceEn = UnitRace('player');
+	getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexture('Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes');
+	getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexCoord(0.25, 0.49609375, 0.25, 0.5);
+	getglobal('BeneCastOptionFrameTab9').tooltipText = BENECAST_STRINGS.CLASS_SHAMAN;
 	
-	if ( raceEn == 'Human' or raceEn == 'NightElf' or raceEn == 'Gnome' or raceEn == 'Dwarf' ) then
-		getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexture('Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes');
-		getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexCoord(0.0, 0.25, 0.5, 0.75);
-		getglobal('BeneCastOptionFrameTab9').tooltipText = BENECAST_STRINGS.CLASS_PALADIN;
-		getglobal('BeneCastOptionFrameTab12NormalTexture'):SetTexture('Interface\\Icons\\INV_Banner_02');
-	else
-		getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexture('Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes');
-		getglobal('BeneCastOptionFrameTab9NormalTexture'):SetTexCoord(0.25, 0.49609375, 0.25, 0.5);
-		getglobal('BeneCastOptionFrameTab9').tooltipText = BENECAST_STRINGS.CLASS_SHAMAN;
-		getglobal('BeneCastOptionFrameTab12NormalTexture'):SetTexture('Interface\\Icons\\INV_Banner_03');
-	end
+	getglobal('BeneCastOptionFrameTab10NormalTexture'):SetTexture('Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes');
+	getglobal('BeneCastOptionFrameTab10NormalTexture'):SetTexCoord(0.0, 0.25, 0.5, 0.75);
+	getglobal('BeneCastOptionFrameTab10').tooltipText = BENECAST_STRINGS.CLASS_PALADIN;
 	
-	getglobal('BeneCastOptionFrameTab10NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Wrench_01');
-	getglobal('BeneCastOptionFrameTab10').tooltipText = BENECAST_STRINGS.TEXT_SETUP;
+	getglobal('BeneCastOptionFrameTab11NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Wrench_01');
+	getglobal('BeneCastOptionFrameTab11').tooltipText = BENECAST_STRINGS.TEXT_SETUP;
 	
-	getglobal('BeneCastOptionFrameTab11NormalTexture'):SetTexture('Interface\\Icons\\INV_Letter_08');
-	getglobal('BeneCastOptionFrameTab11').tooltipText = BENECAST_STRINGS.TEXT_NOTIFICATION;
+	getglobal('BeneCastOptionFrameTab12NormalTexture'):SetTexture('Interface\\Icons\\INV_Letter_08');
+	getglobal('BeneCastOptionFrameTab12').tooltipText = BENECAST_STRINGS.TEXT_NOTIFICATION;
 	
-	getglobal('BeneCastOptionFrameTab12NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Head_Dragon_01');
-	getglobal('BeneCastOptionFrameTab12').tooltipText = BENECAST_STRINGS.TEXT_RAID;
+	getglobal('BeneCastOptionFrameTab13NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Head_Dragon_01');
+	getglobal('BeneCastOptionFrameTab13').tooltipText = BENECAST_STRINGS.TEXT_RAID;
 
-	getglobal('BeneCastOptionFrameTab13NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Wrench_02');
-	getglobal('BeneCastOptionFrameTab13').tooltipText = 'Unit Frames';
+	getglobal('BeneCastOptionFrameTab14NormalTexture'):SetTexture('Interface\\Icons\\INV_Misc_Wrench_02');
+	getglobal('BeneCastOptionFrameTab14').tooltipText = 'Unit Frames';
 
 end
 
@@ -4520,4 +4549,17 @@ function BeneCast_ScanActionSlot(slot)
 			end
 		end
 	end
+end
+
+function BeneCast_GetShapeshiftId()
+	-- Check shapeshift forms to see if they're active
+	local shapeshiftnum = GetNumShapeshiftForms();
+	local icon, name, active;
+	for i = 1,shapeshiftnum do
+		icon, name, active = GetShapeshiftFormInfo(i);
+		if ( active ) then
+			return i;
+		end
+	end
+	return 0;
 end
