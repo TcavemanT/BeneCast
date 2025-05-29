@@ -1379,7 +1379,7 @@ function BeneCast_UnitInterpolateHealth(unit, health_percent)
 	
 end
 
--- Function to Choose the appropriate spell to cast. Thanks Danboo!
+-- Function to Choose the appropriate spell to cast.
 -- Returns the spell to be cast
 function BeneCast_ChooseSpell(type, target, forcemax, forceoverheal)
 
@@ -1911,7 +1911,6 @@ function BeneCast_PartyNotify(target, spell, ismax, duration)
 end
 
 -- Function for Party Notification on failures and interruptions
--- Modified SpeakSpell by Danboo.
 function BeneCast_PartyNotifyFail(event)
 
 	local message_text;
@@ -1953,6 +1952,7 @@ end
 
 function BeneCast_GetUnitIDFromPanelID(id)
 	local target = nil;
+	--6 thu 45 is raid, 51-90 raid pets
 	if ( id >= 6 and id <= 45 ) or ( id >= 51 and id <= 90 ) then
 		if BENECAST_RAID_PANELS2[id] then
 			target = BENECAST_RAID_PANELS2[id]['unitid'];
@@ -1966,69 +1966,75 @@ end
 -- Cast a spell when a BeneCastButton is clicked on
 function BeneCastButton_OnClick()
 
+	local originalTargetExists = UnitExists("target");
+	
 	local id = this:GetParent():GetID();
-	local target;
+	local buttonTarget;
+	
+	-- 92 is target's target panel
 	if id ~= 92 then
-		target = BeneCast_GetUnitIDFromPanelID(id);
+		buttonTarget = BeneCast_GetUnitIDFromPanelID(id);
 	else
 		-- Try to find a better unitid instead of targettarget
 		for i, unit in BC_targets do
 			if unit ~= 'targettarget' and UnitIsUnit(unit,'targettarget') then
-				target = unit;
+				buttonTarget = unit;
 				PutDebugMsg('Casting on ' .. unit .. ' instead of targettarget');
 				do break end;
 			end
 		end
-		if target == nil then
-			target = 'targettarget';
+		if buttonTarget == nil then
+			buttonTarget = 'targettarget';
 		end
 	end
-	if target == nil then
-		PutDebugMsg('Couldnt find the unitid for panel ' .. id);
+	if buttonTarget == nil then
+		PutDebugMsg('Could not find the unitid for panel ' .. id);
 		return;
 	end
-	-- In case you switch targets because you're targeting a friendly
-	local retarget_friend = nil;
-	
-	if ( not UnitExists(target) ) then
-		if target then
-			PutDebugMsg(target .. ' is not an existing Unit');
+
+	if ( not UnitExists(buttonTarget) ) then
+		if buttonTarget then
+			PutDebugMsg(buttonTarget .. ' is not an existing Unit');
 		else
 			PutDebugMsg('var target is nil');
 		end
 		return;
 	end
 	
-	local spell;
+	if (UnitIsCharmed(buttonTarget)) then
+		-- we can not help a mind controlled player
+		return;
+    end
+
 	local spelltype = this.spelltype;
-	
 	if ( spelltype == 'assist' ) then
-		AssistUnit(target);
+		AssistUnit(buttonTarget);
 		return;
 	end
 	
-	-- Target the intended target if the current target is friendly but not the intended target
-	if ( not UnitCanAttack('player', 'target') and not UnitIsUnit('target', target) and not string.find(spelltype, 'selfbuff') and UnitExists('target') ) then
-		retarget_friend = true;
-		if BeneCastConfig.Debug then
-			local currtarget = UnitName('target');
-			PutDebugMsg('Stopping targetting the friendly target named ' .. currtarget);
-		end	
-		--WINTROW.6 TargetUnit(target);
-		ClearTarget(); --WINTROW.6
+	local spellTargetIsCurrentTarget = UnitIsUnit('target', buttonTarget);
+	if ( originalTargetExists and not spellTargetIsCurrentTarget ) then
+		ClearTarget();
 	end
-	
-	-- If a spell is already targeting stop targeting
+	-- Doing this rather than above will
+	-- let the spell hit the intended target 
+	-- when autoSelfCast is on but won't work
+	-- if target is out of spell range.
+	--if ( not spellTargetIsCurrentTarget ) then
+	--	TargetUnit(buttonTarget);
+	--end
+
+	-- If in spell targeting mode then stop targeting
 	if ( SpellIsTargeting() ) then
 		SpellStopTargeting();
 	end
 	
-	-- Always take care of items on cursor with left clicks
+	-- Always handle items on cursor with left clicks
 	if ( button == 'LeftButton' and CursorHasItem() ) then
 		if ( unit == 'player' ) then
 			AutoEquipCursorItem();
 		else
-			DropItemOnUnit(target);
+			DropItemOnUnit(buttonTarget);
 		end
 		PutDebugMsg('Cursor had item');
 		return;
@@ -2036,27 +2042,13 @@ function BeneCastButton_OnClick()
 
 	local forcemax, forceoverheal;
 	-- Druid - remove treeform if the Alt key is held down and casting Healing Touch
-	if ( IsAltKeyDown() and BC_IsPlayerDruid and spelltype == 'efficient' ) then
-		local is_TreeOfLife = false;
-		local activeshapeshiftid = 0
-
-		-- Check all shapeshift forms to see if they're active
-		local shapeshiftnum = GetNumShapeshiftForms();
-		local icon, name, active;
-		for i = 1,shapeshiftnum do
-			icon, name, active = GetShapeshiftFormInfo(i);
-			if ( active ) then
-				activeshapeshiftid = i;
-				if( name == 'Tree of Life Form' ) then
-					is_TreeOfLife = true;
-				end
-				do break end
-			end
-		end
-		if( is_TreeOfLife) then
-			CastShapeshiftForm(shapeshiftnum);
+	if ( BC_IsPlayerDruid and
+		 IsAltKeyDown() and
+		 spelltype == 'efficient' and
+		 BeneCast_IsPlayerInTreeOfLifeForm(BC_ActiveShapeshiftId)) then
+			
+			CastShapeshiftForm(BC_ActiveShapeshiftId);--Casting it again will revert form
 			SpellStopCasting();
-		end
 	end
 	-- Cast Nature's Swiftness before casting the a Druid or Shaman heal if the Alt key is held down
 	if ( IsAltKeyDown() and ( BC_IsPlayerDruid or BC_class == BENECAST_STRINGS.CLASS_SHAMAN ) and ( spelltype == 'efficient' or spelltype == 'emergency' ) and BC_spell_data['selfbuff1'] ) then
@@ -2066,31 +2058,29 @@ function BeneCastButton_OnClick()
 		forcemax = true;
 	end
 	
-	spell = BeneCast_ChooseSpell(spelltype, target, forcemax, forceoverheal);
-	
-	-- In case you're targeting an enemy and cast make sure that you'll cast on the intended target
-	local retarget_enemy = nil;
-	
+	local spell = BeneCast_ChooseSpell(spelltype, buttonTarget, forcemax, forceoverheal);
 	-- Try casting the spell if it exists
 	if ( spell ) then
-		-- Dispel Magic can be used offensively, always target the intended target
-		if ( (BC_IsPlayerPriest and spelltype == 'magic') or
-		     (BC_IsPlayerPaladin and spelltype == 'instant') ) and 
-		   UnitCanAttack('player', 'target') then
-			retarget_enemy = true;
-			if BeneCastConfig.Debug then
-				local currtarget = UnitName('target');
-				PutDebugMsg('Stopping targetting the enemy target named ' .. currtarget);
-			end
-			--WINTROW.6 TargetUnit(target);
-			ClearTarget(); --WINTROW.6
+		-- Turn the option autoSelfCast off..
+		-- since we are clearing the target and
+		-- the spell needs to hit the intended target
+		-- TODO -- seems too much like a hack.
+		local autoSelfCast = GetCVar("autoSelfCast"); 
+		if autoSelfCast then
+			SetCVar("autoSelfCast",0)
 		end
 		-- Cast the spell
 		CastSpell(spell.id, SpellBookFrame.bookType);
+		--CastSpellByName( spell.name, buttonTarget );
 		BC_spellbeingcast = spell;
-		BC_spelltarget = target;
+		BC_spelltarget = buttonTarget;
 		BC_spellismax = forcemax;
-		SpellTargetUnit(target);
+		--Casts the spell awaiting target selection on the unit.
+		SpellTargetUnit(buttonTarget);
+		-- restore the option
+		if autoSelfCast then
+			SetCVar("autoSelfCast",1)
+		end
 	elseif BeneCastConfig.Debug then
 		local msg = 'No spell found for ';
 		if spelltype then
@@ -2098,8 +2088,8 @@ function BeneCastButton_OnClick()
 		else
 			msg = msg .. 'spelltype=nil';
 		end
-		if target then
-			msg = msg .. ', target=' .. target;
+		if buttonTarget then
+			msg = msg .. ', target=' .. buttonTarget;
 		else
 			msg = msg .. ', target=nil';
 		end
@@ -2123,26 +2113,15 @@ function BeneCastButton_OnClick()
 		end
 		PutDebugMsg(msg);
 	end
-	
-	-- Re-target the last enemy if you changed targets due to Dispel Magic/Holy Shock
-	if ( retarget_enemy or retarget_friend ) then
-		local currtarget = UnitName('target');
+
+	-- Re-target the original target
+	if ( not spellTargetIsCurrentTarget ) then
 		TargetLastTarget();
-		if BeneCastConfig.Debug then
-			if not currtarget then
-				currtarget = 'no target';
-			end
-			local currtarget2 = UnitName('target');
-			if not currtarget2 then
-				currtarget2 = 'nil';
-			end
-			PutDebugMsg('Switching back from ' .. currtarget .. ' to ' .. currtarget2);
-		end
 	end
 
 end
 
--- Make a tooltip for the BeneCastButton based on the options set
+-- Make a tool-tip for the BeneCastButton based on the options set
 function BeneCastButton_OnEnter()
 
 	if ( this.spelltype == 'assist' ) then
@@ -2310,7 +2289,7 @@ function BeneCast_UpdateButtons(id)
 		PutDebugMsg('BeneCast_UpdateButtons(): parameter id is nil');
 		return;
 	end
-	
+	-- 92 is target's target panel
 	if ( id == 92 and not BeneCastConfig.ShowTargetTarget ) then
 		getglobal('BeneCastPanel' .. id):Hide();
 		return;
@@ -2419,21 +2398,8 @@ function BeneCast_UpdateButtons(id)
 	-- When a Druid is shapeshifted hide all buttons
 	-- unless they are tree of life form
 	if ( BC_IsPlayerDruid ) then
-		-- Check all shapeshift forms to see if they're active
-		local shapeshiftnum = GetNumShapeshiftForms();
-		local icon, name, active;
-		--local is_shapeshifted = nil;
-		for i = 1,shapeshiftnum do
-			icon, name, active = GetShapeshiftFormInfo(i);
-			if ( active ) then
-				--is_shapeshifted = true;
-				activeshapeshiftid = i;
-				if( name == 'Tree of Life Form' ) then
-					is_TreeOfLife = true;
-				end
-				do break end
-			end
-		end
+		activeshapeshiftid = BC_ActiveShapeshiftId
+		is_TreeOfLife = BeneCast_IsPlayerInTreeOfLifeForm(BC_ActiveShapeshiftId);
 	end
 	
 	-- Otherwise show the buttons. Show the BeneCastPanel frame first
@@ -3211,8 +3177,8 @@ function BeneCastOptionsCheckButton_OnClick()
 	for index, value in BeneCastOptionFrameCheckButtons do
 		if ( value.index == this:GetID() ) then
 			BeneCastConfig[value.cvar] = this:GetChecked();
-			-- If this is the tooltip option check to see if it's enabled
-			-- If not disable the tooltip name option checkbutton
+			-- If this is the tool-tip option check to see if it's enabled
+			-- If not disable the tool-tip name option checkbutton
 			if ( value.index == 5 ) then
 				if ( this:GetChecked() ) then
 					getglobal('BeneCastOptionCheckButton6'):Enable();
@@ -3261,8 +3227,8 @@ function BeneCastOptionsCheckButton_OnClick()
 				else
 					getglobal('BeneCastOptionCheckButton17'):Disable();
 				end
-			-- If this is the hide minimap button option check to see if it's enabled
-			-- If so then hide the minimap button
+			-- If this is the hide mini-map button option check to see if it's enabled
+			-- If so then hide the mini-map button
 			elseif ( value.index == 4 ) then
 				if ( this:GetChecked() ) then
 					getglobal('BeneCastMinimapButton'):Hide();
@@ -3271,7 +3237,7 @@ function BeneCastOptionsCheckButton_OnClick()
 				end	
 			-- If this is a notification channel option check to see if it's enabled
 			-- If so disable all other notification channel options
-			-- Notifcation channel options should act like radio buttons
+			-- Notification channel options should act like radio buttons
 			elseif ( value.index == 9 or 
 			         value.index == 10 or 
 				 value.index == 11 or 
@@ -3345,9 +3311,7 @@ function BeneCastOptionsCheckButton_OnClick()
 	
 	-- Redraw everyone's buttons
 	if not dontredraw then
-		for i in BC_targets do
-			BeneCast_UpdateButtons(i);
-		end
+		BeneCast_UpdateAllButtons();	
 	end
 
 end
@@ -3529,12 +3493,10 @@ function BeneCastPanelManager_OnLoad()
 	this:RegisterEvent('RAID_ROSTER_UPDATE');
 	this:RegisterEvent('UNIT_HEALTH');
 	--WINTROW.6 this:RegisterEvent('UNIT_INVENTORY_CHANGED');
-	--WINTROW.6 START
 	this:RegisterEvent('PLAYER_ENTERING_WORLD');
 	this:RegisterEvent('PLAYER_LEAVING_WORLD');
 	this:RegisterEvent('VARIABLES_LOADED');
 	this:RegisterEvent('UNIT_PET');
-	--WINTROW.6 STOP
 
 end
 
@@ -3695,10 +3657,8 @@ function BeneCastPanelManager_OnEvent()
 		
 		-- Reset most of the tables for reloading of spells and reload the spell data
 		BeneCast_ResetData();
-		-- Redraw all the buttons on everyone
-		for i in BC_targets do
-			BeneCast_UpdateButtons(i);
-		end
+		-- Redraw everyone's buttons
+		BeneCast_UpdateAllButtons();
 	
 	-- Don't bother with UNIT_AURA if the player can attack the unit
 	elseif ( ( event == 'UNIT_AURA' or event == 'UNIT_AURASTATE' ) and not UnitCanAttack('player', arg1) ) then
@@ -3794,15 +3754,11 @@ function BeneCastPanelManager_OnEvent()
 		
 	elseif ( event == 'PLAYER_DEAD' ) then
 		-- Redraw everyone's buttons
-		for i in BC_targets do
-			BeneCast_UpdateButtons(i);
-		end
+		BeneCast_UpdateAllButtons();
 		
 	elseif ( event == 'PLAYER_UNGHOST' ) then
 		-- Redraw everyone's buttons
-		for i in BC_targets do
-			BeneCast_UpdateButtons(i);
-		end
+		BeneCast_UpdateAllButtons();
 		
 	elseif ( event == 'UNIT_HEALTH' ) then
 		-- Redraw a member's panel if they're dead
@@ -4562,4 +4518,15 @@ function BeneCast_GetShapeshiftId()
 		end
 	end
 	return 0;
+end
+
+function BeneCast_IsPlayerInTreeOfLifeForm( shapeshiftID )
+	if( shapeshiftID > 0) then
+		local icon, name, active;
+		icon, name, active = GetShapeshiftFormInfo(shapeshiftID);
+		if ( active and name == 'Tree of Life Form') then
+			return true;
+		end
+	end
+	return false;
 end
