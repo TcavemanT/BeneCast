@@ -1966,7 +1966,7 @@ end
 -- Cast a spell when a BeneCastButton is clicked on
 function BeneCastButton_OnClick()
 
-	--local originalTargetExists = UnitExists("target");
+	local originalTargetExists = UnitExists("target");
 	
 	local id = this:GetParent():GetID();
 	local buttonTarget;
@@ -2013,15 +2013,16 @@ function BeneCastButton_OnClick()
 	end
 	
 	local spellTargetIsCurrentTarget = UnitIsUnit('target', buttonTarget);
-	--if ( originalTargetExists and not spellTargetIsCurrentTarget ) then
-	--	ClearTarget();
-	--end
+	if ( originalTargetExists and not spellTargetIsCurrentTarget ) then
+		ClearTarget();
+	end
 	-- Doing this rather than above will
 	-- let the spell hit the intended target 
-	-- when autoSelfCast is on
-	if ( not spellTargetIsCurrentTarget ) then
-		TargetUnit(buttonTarget);
-	end
+	-- when autoSelfCast is on but won't work
+	-- if target is out of spell range.
+	--if ( not spellTargetIsCurrentTarget ) then
+	--	TargetUnit(buttonTarget);
+	--end
 
 	-- If in spell targeting mode then stop targeting
 	if ( SpellIsTargeting() ) then
@@ -2060,12 +2061,14 @@ function BeneCastButton_OnClick()
 	local spell = BeneCast_ChooseSpell(spelltype, buttonTarget, forcemax, forceoverheal);
 	-- Try casting the spell if it exists
 	if ( spell ) then
-		--this can be used to solve the aASSDutoSelfCast Option
-		-- issue but it seems too much like a hack.
-		--local autoSelfCast = GetCVar("autoSelfCast"); 
-		--if autoSelfCast then
-		--	SetCVar("autoSelfCast",0)
-		--end
+		-- Turn the option autoSelfCast off..
+		-- since we are clearing the target and
+		-- the spell needs to hit the intended target
+		-- TODO -- seems too much like a hack.
+		local autoSelfCast = GetCVar("autoSelfCast"); 
+		if autoSelfCast then
+			SetCVar("autoSelfCast",0)
+		end
 		-- Cast the spell
 		CastSpell(spell.id, SpellBookFrame.bookType);
 		--CastSpellByName( spell.name, buttonTarget );
@@ -2073,11 +2076,11 @@ function BeneCastButton_OnClick()
 		BC_spelltarget = buttonTarget;
 		BC_spellismax = forcemax;
 		--Casts the spell awaiting target selection on the unit.
-		--SpellTargetUnit(buttonTarget);
-		---- restore the option
-		--if autoSelfCast then
-		--	SetCVar("autoSelfCast",1)
-		--end
+		SpellTargetUnit(buttonTarget);
+		-- restore the option
+		if autoSelfCast then
+			SetCVar("autoSelfCast",1)
+		end
 	elseif BeneCastConfig.Debug then
 		local msg = 'No spell found for ';
 		if spelltype then
